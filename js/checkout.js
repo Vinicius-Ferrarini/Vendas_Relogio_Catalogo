@@ -1,1 +1,252 @@
-function getCart(){return JSON.parse(localStorage.getItem("leandrinhoCart")||"[]")}function saveCart(e){localStorage.setItem("leandrinhoCart",JSON.stringify(e))}function escapeHtml(e){return e||0===e?String(e).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"):""}function formatPrice(e){return new Intl.NumberFormat("pt-BR",{style:"currency",currency:"BRL"}).format(e||0)}function vazioElemento(e){for(;e.firstChild;)e.removeChild(e.firstChild)}function formatarCEP(e){const t=e.target;let n=t.value.replace(/\D/g,"");n.length>5&&(n=n.replace(/^(\d{5})(\d)/,"$1-$2")),t.value=n.substring(0,9)}async function buscarCep(e){e.preventDefault();const t=cepInput.value.replace(/\D/g,"");if(8===t.length){btnBuscarCep.textContent="Buscando...",btnBuscarCep.disabled=!0;try{const e=await fetch(`https://viacep.com.br/ws/${t}/json/`);if(!e.ok)throw new Error("Erro na rede");const n=await e.json();n.erro?(alert("CEP não encontrado. Verifique o número."),document.getElementById("enderecoRua").value="",document.getElementById("enderecoBairro").value="",document.getElementById("enderecoCidade").value=""):(document.getElementById("enderecoRua").value=n.logradouro,document.getElementById("enderecoBairro").value=n.bairro,document.getElementById("enderecoCidade").value=n.localidade,n.logradouro?document.getElementById("enderecoNumero").focus():document.getElementById("enderecoRua").focus())}catch(e){console.error("Erro ao buscar CEP:",e),alert("Erro ao buscar CEP. Verifique sua conexão.")}finally{btnBuscarCep.textContent="Pesquisar",btnBuscarCep.disabled=!1}}else alert("CEP inválido. Por favor, digite 8 números.")}function updateCartButtonText(){const e=document.getElementById("enviarWhatsApp");if(!e)return;const t=getCart(),n=t.reduce((e,t)=>e+t.quantity,0);e.textContent=n>0?`🛒 Ver Carrinho (${n} ${n>1?"itens":"item"})`:"🛒 Carrinho Vazio"}function goToStep(e){wizardStep1&&wizardStep2&&modalTituloEl?1===e?(wizardStep1.style.display="flex",wizardStep2.style.display="none",modalTituloEl.textContent="🛒 Passo 1: Meu Carrinho"):2===e&&(wizardStep1.style.display="none",wizardStep2.style.display="flex",modalTituloEl.textContent="🚚 Passo 2: Entrega e Pagamento"):console.error("Elementos do Wizard não encontrados. O HTML está correto?")}function resetAdicionaisModal(){document.getElementById("formaPagamento").value="",document.getElementById("enderecoCep").value="",document.getElementById("enderecoRua").value="",document.getElementById("enderecoNumero").value="",document.getElementById("enderecoComplemento").value="",document.getElementById("enderecoBairro").value="",document.getElementById("enderecoCidade").value="",btnBuscarCep&&(btnBuscarCep.textContent="Pesquisar",btnBuscarCep.disabled=!1),document.getElementById("observacaoPedido").value=""}function abrirModalCarrinho(){const e=getCart(),t=document.getElementById("modalCarrinho"),n=document.getElementById("listaCarrinhoModal"),o=document.getElementById("totalCarrinhoStep1"),a=document.getElementById("totalCarrinhoStep2"),r=document.getElementById("btnNextStep");if(vazioElemento(n),0===e.length)n.innerHTML="<p>Seu carrinho está vazio.</p>",o.textContent="Total: R$ 0,00",a.textContent="Total: R$ 0,00",r.style.display="none",resetAdicionaisModal();else{let t=0;e.forEach(e=>{const o=document.createElement("div");o.className="cart-item-modal";let a=escapeHtml(e.nome);e.observacao&&(a+=`<span class="item-obs-modal">Obs: ${escapeHtml(e.observacao)}</span>`),o.innerHTML=`\n                <div class="cart-item-modal-info">\n                    <span class="nome">${a}</span>\n                    <span class="preco">${formatPrice(e.preco)}</span>\n                </div>\n                <div class="cart-item-modal-actions">\n                    <div class="cart-item-modal-controls">\n                        <button class="qty-btn decrease-qty" data-id="${escapeHtml(e.id)}" ${e.quantity<=1?"disabled":""}>-</button>\n                        <span>${e.quantity}</span>\n                        <button class="qty-btn increase-qty" data-id="${escapeHtml(e.id)}">+</button>\n                    </div>\n                    <button class="remover-item-btn" data-id="${escapeHtml(e.id)}">Remover</button>\n                </div>`,n.appendChild(o),t+=e.preco*e.quantity});const d=formatPrice(t);o.textContent=`Total: ${d}`,a.textContent=`Total: ${d}`,r.style.display="block",resetAdicionaisModal(),document.getElementById("observacaoPedido").value=""}goToStep(1),t.style.display="flex"}function fecharModalCarrinho(){document.getElementById("modalCarrinho").style.display="none",goToStep(1)}function handleRemoverItem(e){let t=getCart();t=t.filter(t=>t.id.toString()!==e.toString()),saveCart(t),abrirModalCarrinho(),updateCartButtonText();const n=document.querySelectorAll(`.btn-add-cart[data-id="${e}"]`);n.forEach(e=>{e&&(e.textContent="Adicionar ao Carrinho",e.disabled=!1)})}function increaseQuantity(e){let t=getCart();const n=t.findIndex(t=>t.id.toString()===e.toString());n>-1&&(t[n].quantity++,saveCart(t),abrirModalCarrinho(),updateCartButtonText())}function decreaseQuantity(e){let t=getCart();const n=t.findIndex(t=>t.id.toString()===e.toString());n>-1&&t[n].quantity>1?(t[n].quantity--,saveCart(t),abrirModalCarrinho(),updateCartButtonText()):n>-1&&1===t[n].quantity&&handleRemoverItem(e)}function handleEnviarPedido(){const e=getCart(),t=document.getElementById("observacaoPedido").value.trim(),n=document.getElementById("enviarPedidoModal");if(0===e.length)return void alert("Seu carrinho está vazio.");const o=document.getElementById("formaPagamento").value,a=document.getElementById("enderecoCep").value.trim(),r=document.getElementById("enderecoRua").value.trim(),d=document.getElementById("enderecoNumero").value.trim(),i=document.getElementById("enderecoComplemento").value.trim(),c=document.getElementById("enderecoBairro").value.trim(),l=document.getElementById("enderecoCidade").value.trim();if(!o)return alert("Por favor, selecione uma forma de pagamento."),void document.getElementById("formaPagamento").focus();const s=a||r||d||c||l;if(s&&!(a&&r&&d&&c&&l))return alert("Para entrega, por favor, preencha todos os campos de endereço (CEP, Rua, Número, Bairro e Cidade)."),void(a?r?d?c?l||document.getElementById("enderecoCidade").focus():document.getElementById("enderecoBairro").focus():document.getElementById("enderecoNumero").focus():document.getElementById("enderecoRua").focus():document.getElementById("enderecoCep").focus());n.disabled=!0,n.textContent="Abrindo WhatsApp...";const u=e.map(e=>{const t=formatPrice(e.preco*e.quantity);let n=`${e.quantity}x ${e.nome} (${formatPrice(e.preco)} cada) - ${t}`;return e.observacao&&(n+=`\n  (Obs: ${e.observacao})`),n}),m=e.reduce((e,t)=>e+t.preco*t.quantity,0),p=formatPrice(m);let g=`Olá! Gostaria de fazer o seguinte pedido:\n\n${u.join("\n")}`;g+=`\n\n*Subtotal: ${p}*`,g+=`\n\n*Forma de Pagamento:*\n${o}`,s&&(g+="\n\n*Endereço de Entrega:*",g+=`\nCEP: ${a}`,g+=`\nRua: ${r}, ${d}`,i&&(g+=`\nComplemento: ${i}`),g+=`\nBairro: ${c}`,g+=`\nCidade: ${l}`),t&&(g+=`\n\n*Observações Gerais:*\n${t}`);const y=`https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(g)}`;window.open(y,"_blank"),setTimeout(()=>{console.log("Limpando carrinho após envio..."),saveCart([]),resetAdicionaisModal(),updateCartButtonText();const e=document.querySelectorAll(".btn-add-cart:disabled");e.forEach(e=>{"enviarPedidoModal"!==e.id&&(e.textContent="Adicionar ao Carrinho",e.disabled=!1)}),fecharModalCarrinho(),n.disabled=!1,n.textContent="🟢 Enviar Pedido"},1500)}function initCheckout(){cepInput=document.getElementById("enderecoCep"),btnBuscarCep=document.getElementById("btnBuscarCep"),btnNextStep=document.getElementById("btnNextStep"),btnPrevStep=document.getElementById("btnPrevStep"),modalTituloEl=document.getElementById("modalTitulo"),wizardStep1=document.getElementById("wizardStep1"),wizardStep2=document.getElementById("wizardStep2");const e=document.getElementById("enviarWhatsApp");e&&e.addEventListener("click",()=>{0!==getCart().length?abrirModalCarrinho():alert("Seu carrinho está vazio.")});const t=document.getElementById("modalCarrinho");t?(document.getElementById("fecharModal").addEventListener("click",fecharModalCarrinho),t.addEventListener("click",e=>{e.target.classList.contains("modal-overlay")&&fecharModalCarrinho()}),document.getElementById("listaCarrinhoModal").addEventListener("click",e=>{const t=e.target,n=t.closest("[data-id]");if(!n)return;const o=n.dataset.id;t.classList.contains("remover-item-btn")?handleRemoverItem(o):t.classList.contains("increase-qty")?increaseQuantity(o):t.classList.contains("decrease-qty")&&decreaseQuantity(o)}),document.getElementById("enviarPedidoModal").addEventListener("click",handleEnviarPedido),cepInput&&(cepInput.addEventListener("input",formatarCEP),cepInput.addEventListener("keyup",e=>{"Enter"===e.key&&(e.preventDefault(),btnBuscarCep.click())})),btnBuscarCep&&btnBuscarCep.addEventListener("click",buscarCep),btnNextStep&&btnNextStep.addEventListener("click",()=>goToStep(2)),btnPrevStep&&btnPrevStep.addEventListener("click",()=>goToStep(1))):console.error("O HTML do modal não foi encontrado. O checkout não pode ser inicializado.");const n=document.getElementById("whatsappHeaderButton");if(n){const e=encodeURIComponent("Vim do site Eleven Store e gostaria de verificar sobre ...");n.href=`https://wa.me/${WHATSAPP_NUMBER}?text=${e}`,n.target="_blank"}updateCartButtonText()}const WHATSAPP_NUMBER="5548999560110";let cepInput,btnBuscarCep,btnNextStep,btnPrevStep,modalTituloEl,wizardStep1,wizardStep2;
+// js/checkout.js - VERSÃO CORRIGIDA (Header, Limpeza e Caracteres)
+
+// --- CONFIGURAÇÃO ---
+const WHATSAPP_NUMBER = "5548999560110"; // Seu número (apenas dígitos)
+// --------------------
+
+function getCart() {
+    return JSON.parse(localStorage.getItem("leandrinhoCart") || "[]");
+}
+
+function saveCart(cart) {
+    localStorage.setItem("leandrinhoCart", JSON.stringify(cart));
+}
+
+function escapeHtml(text) {
+    if (!text && text !== 0) return "";
+    return String(text)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;");
+}
+
+function formatPrice(value) {
+    return new Intl.NumberFormat('pt-BR', { style: 'currency', currency: 'BRL' }).format(value || 0);
+}
+
+function vazioElemento(element) {
+    while (element.firstChild) {
+        element.removeChild(element.firstChild);
+    }
+}
+
+function updateCartButtonText() {
+    const btn = document.getElementById('enviarWhatsApp');
+    if (!btn) return;
+    const cart = getCart();
+    const totalQty = cart.reduce((acc, item) => acc + item.quantity, 0);
+    
+    // Atualiza o botão flutuante do rodapé
+    if (totalQty > 0) {
+        btn.textContent = `🛒 Ver Carrinho (${totalQty} ${totalQty > 1 ? 'itens' : 'item'})`;
+        btn.classList.add('has-items');
+    } else {
+        btn.textContent = "🛒 Carrinho Vazio";
+        btn.classList.remove('has-items');
+    }
+}
+
+function abrirModalCarrinho() {
+    const cart = getCart();
+    const modal = document.getElementById('modalCarrinho');
+    const listaModal = document.getElementById('listaCarrinhoModal');
+    const totalEl = document.getElementById('totalCarrinhoModal');
+    const btnEnviar = document.getElementById('btnEnviarWhatsApp');
+
+    vazioElemento(listaModal);
+
+    if (cart.length === 0) {
+        listaModal.innerHTML = '<p style="text-align:center; padding: 20px;">Seu carrinho está vazio.</p>';
+        if(totalEl) totalEl.textContent = "Total: R$ 0,00";
+        if(btnEnviar) btnEnviar.style.display = "none";
+    } else {
+        let total = 0;
+        cart.forEach(item => {
+            const itemTotal = item.preco * item.quantity;
+            total += itemTotal;
+
+            const div = document.createElement('div');
+            div.className = 'cart-item-modal';
+            
+            let nomeDisplay = escapeHtml(item.nome);
+            if (item.observacao) {
+                nomeDisplay += `<br><small class="item-obs-modal">Obs: ${escapeHtml(item.observacao)}</small>`;
+            }
+
+            div.innerHTML = `
+                <div class="cart-item-modal-info">
+                    <span class="nome">${nomeDisplay}</span>
+                    <span class="preco">${formatPrice(item.preco)} un.</span>
+                </div>
+                <div class="cart-item-modal-actions">
+                    <div class="cart-item-modal-controls">
+                        <button class="qty-btn decrease-qty" data-id="${item.id}">-</button>
+                        <span>${item.quantity}</span>
+                        <button class="qty-btn increase-qty" data-id="${item.id}">+</button>
+                    </div>
+                    <span style="font-size: 0.9rem; font-weight: bold;">${formatPrice(itemTotal)}</span>
+                    <button class="remover-item-btn" data-id="${item.id}" style="font-size:0.7rem; padding: 2px 5px; margin-top:5px;">Remover</button>
+                </div>
+            `;
+            listaModal.appendChild(div);
+        });
+
+        if(totalEl) totalEl.textContent = `Total Geral: ${formatPrice(total)}`;
+        if(btnEnviar) btnEnviar.style.display = "block";
+    }
+
+    modal.style.display = 'flex';
+}
+
+function fecharModalCarrinho() {
+    document.getElementById('modalCarrinho').style.display = 'none';
+}
+
+function handleRemoverItem(id) {
+    let cart = getCart();
+    cart = cart.filter(item => item.id.toString() !== id.toString());
+    saveCart(cart);
+    abrirModalCarrinho();
+    updateCartButtonText();
+    
+    // Reabilita botões na interface
+    const btn = document.querySelector(`.btn-add-cart[data-id="${id}"]`);
+    if (btn) {
+        btn.textContent = "Adicionar ao Carrinho";
+        btn.disabled = false;
+    }
+}
+
+function increaseQuantity(id) {
+    let cart = getCart();
+    const index = cart.findIndex(item => item.id.toString() === id.toString());
+    if (index > -1) {
+        cart[index].quantity++;
+        saveCart(cart);
+        abrirModalCarrinho();
+        updateCartButtonText();
+    }
+}
+
+function decreaseQuantity(id) {
+    let cart = getCart();
+    const index = cart.findIndex(item => item.id.toString() === id.toString());
+    if (index > -1) {
+        if (cart[index].quantity > 1) {
+            cart[index].quantity--;
+            saveCart(cart);
+            abrirModalCarrinho();
+            updateCartButtonText();
+        } else {
+            handleRemoverItem(id);
+        }
+    }
+}
+
+function enviarPedidoWhatsApp() {
+    const cart = getCart();
+    if (cart.length === 0) {
+        alert("Seu carrinho está vazio.");
+        return;
+    }
+
+    // Pega observação geral se existir
+    const obsGeral = document.getElementById('observacaoGeral') ? document.getElementById('observacaoGeral').value : '';
+
+    let mensagem = "*Olá! Gostaria de fazer o seguinte pedido no Catálogo:*\n\n";
+    let totalGeral = 0;
+
+    cart.forEach(item => {
+        const subtotal = item.preco * item.quantity;
+        totalGeral += subtotal;
+        // CORREÇÃO: Usando hífen simples (-) em vez de caractere especial para evitar erros
+        mensagem += `- ${item.quantity}x ${item.nome}\n`;
+        if (item.observacao) mensagem += `   _(Obs: ${item.observacao})_\n`;
+        mensagem += `   Valor: ${formatPrice(subtotal)}\n`;
+    });
+
+    mensagem += `\n*Total do Pedido: ${formatPrice(totalGeral)}*`;
+    
+    if (obsGeral && obsGeral.trim() !== "") {
+        mensagem += `\n\n*Observações:* ${obsGeral}`;
+    }
+
+    mensagem += `\n\nAguardo confirmação!`;
+
+    const url = `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(mensagem)}`;
+    
+    // Abre o WhatsApp
+    window.open(url, '_blank');
+
+    // CORREÇÃO: Limpa o carrinho e atualiza a interface após enviar
+    setTimeout(() => {
+        saveCart([]); // Esvazia o array
+        updateCartButtonText(); // Atualiza botão do rodapé
+        fecharModalCarrinho(); // Fecha o modal
+        
+        // Opcional: Reseta os botões da loja para "Adicionar ao Carrinho"
+        const botoesDesabilitados = document.querySelectorAll('.btn-add-cart:disabled');
+        botoesDesabilitados.forEach(btn => {
+            btn.textContent = "Adicionar ao Carrinho";
+            btn.disabled = false;
+        });
+
+        // Limpa campo de observação
+        if(document.getElementById('observacaoGeral')) {
+            document.getElementById('observacaoGeral').value = "";
+        }
+    }, 1000); // Espera 1 segundo para garantir que o usuário viu a ação
+}
+
+function initCheckout() {
+    // CORREÇÃO: Configura o botão do Header (Canto superior direito)
+    const whatsappHeaderBtn = document.getElementById('whatsappHeaderButton');
+    if (whatsappHeaderBtn) {
+        const msgHeader = encodeURIComponent("Olá! Vim do site Eleven Store e gostaria de tirar uma dúvida.");
+        whatsappHeaderBtn.href = `https://wa.me/${WHATSAPP_NUMBER}?text=${msgHeader}`;
+        whatsappHeaderBtn.target = "_blank";
+    }
+
+    // Inicializa botão do rodapé
+    const footerBtn = document.getElementById('enviarWhatsApp');
+    if (footerBtn) {
+        footerBtn.addEventListener('click', () => {
+            if (getCart().length > 0) abrirModalCarrinho();
+            else alert("Seu carrinho está vazio.");
+        });
+    }
+
+    // Inicializa eventos do Modal
+    const modal = document.getElementById('modalCarrinho');
+    if (modal) {
+        // Fechar modal
+        document.getElementById('fecharModal').addEventListener('click', fecharModalCarrinho);
+        modal.addEventListener('click', (e) => {
+            if (e.target.classList.contains('modal-overlay')) fecharModalCarrinho();
+        });
+
+        // Cliques dentro da lista (aumentar/diminuir/remover)
+        document.getElementById('listaCarrinhoModal').addEventListener('click', (e) => {
+            const target = e.target;
+            const btn = target.closest('button'); // Pega o botão mesmo se clicar no ícone
+            if (!btn) return;
+            
+            const id = btn.dataset.id;
+            if (!id) return;
+
+            if (btn.classList.contains('remover-item-btn')) handleRemoverItem(id);
+            else if (btn.classList.contains('increase-qty')) increaseQuantity(id);
+            else if (btn.classList.contains('decrease-qty')) decreaseQuantity(id);
+        });
+
+        // Botão Finalizar
+        const btnEnviar = document.getElementById('btnEnviarWhatsApp');
+        if (btnEnviar) {
+            btnEnviar.addEventListener('click', enviarPedidoWhatsApp);
+        }
+    }
+    
+    // Atualiza texto inicial
+    updateCartButtonText();
+}
